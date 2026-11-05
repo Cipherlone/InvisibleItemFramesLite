@@ -17,29 +17,31 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 /**
- * Listener that ensures broken item frame items restore their {@link ItemMeta}
- * when they are broken/dropped for any {@link org.bukkit.event.hanging.HangingBreakEvent.RemoveCause}.
+ * Recreates the expected drops when a plugin-created invisible item frame is removed.
+ *
+ * <p>The custom item marker exists on the placed entity, not on the ItemStack stored inside that entity.
+ * Vanilla's normal frame drop therefore cannot recreate the plugin's custom item metadata. This listener
+ * replaces that drop with a fresh item from {@link ItemFrameRegistry}.</p>
  */
 public class ItemFrameBreakListener implements Listener {
 
-    /** Key used to tag item frames as invisible via persistent data. */
+    /** Plugin-scoped key used to identify custom invisible frame entities. */
     private final NamespacedKey isInvisibleKey;
 
-    /**
-     * Constructs a new ItemFrameBreakListener.
-     *
-     * @param isInvisibleKey The {@link NamespacedKey} used to identify invisible item frames.
-     */
+    /** @param isInvisibleKey persistent-data key attached to custom frame entities */
     public ItemFrameBreakListener(NamespacedKey isInvisibleKey) {
         this.isInvisibleKey = isInvisibleKey;
     }
 
     /**
-     * Paper doesn't provide drop data in the {@link HangingBreakEvent} event. This is problematic because we aren't
-     * able to set the metadata for the dropped item ({@link ItemMeta} does not transfer to its entity when its
-     * corresponding {@link ItemStack} is placed), and thus, an invisible item frame would drop as a regular one. To
-     * work around this, we cancel the event, manually remove the item entity, then manually drop the corresponding
-     * {@link ItemStack}.
+     * Handles all hanging-entity removal causes for marked frames.
+     *
+     * <p>The event is cancelled before the entity is removed to prevent Bukkit from also performing its
+     * normal removal/drop behavior. The item displayed in the frame is dropped separately, followed by
+     * the matching regular or glow custom frame item. The corresponding vanilla break sound is played
+     * with the frame drop.</p>
+     *
+     * @param e hanging break event; unrelated and already-cancelled events are ignored
      */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onHangingBreak(HangingBreakEvent e) {
@@ -49,46 +51,46 @@ public class ItemFrameBreakListener implements Listener {
         final ItemFrame invisFrame = (ItemFrame) e.getEntity(); // safe to cast given check above
         final Location loc = invisFrame.getLocation();
 
+        // Own the removal and drop sequence so the custom ItemStack metadata is preserved.
         e.setCancelled(true);
         invisFrame.remove();
 
-        // drop the item inside the frame if there was one
+        // Preserve the item currently displayed in the frame, if it is not empty.
         if (!invisFrame.getItem().getType().isAir()) {
             dropItem(loc, invisFrame.getItem());
         }
 
-        // simulate item frame dropping
+        // Drop the correct custom item variant and play its matching break sound.
         if (invisFrame instanceof GlowItemFrame) {
             ItemStack glowInvisItemFrame = ItemFrameRegistry.getInstance().getGlowInvisibleFrame();
             dropItem(loc, glowInvisItemFrame, Sound.ENTITY_GLOW_ITEM_FRAME_BREAK);
-        } else { // regular item frame
+        } else {
             ItemStack regInvisItemFrame = ItemFrameRegistry.getInstance().getRegularInvisibleFrame();
             dropItem(loc, regInvisItemFrame, Sound.ENTITY_ITEM_FRAME_BREAK);
         }
     }
 
     /**
-     * Simulates an item drop.
+     * Spawns an item naturally at the supplied location and optionally plays a break sound.
      *
-     * @param loc        The location to naturally drop an item at.
-     * @param itemToDrop The item to be dropped.
-     * @param sound      The sound to be played.
+     * @param loc location where the item should appear
+     * @param itemToDrop item stack to spawn
+     * @param sound optional sound; null suppresses sound playback
      */
     private void dropItem(Location loc, ItemStack itemToDrop, Sound sound) {
         World w = loc.getWorld();
         w.dropItemNaturally(loc, itemToDrop);
         if (sound != null) w.playSound(loc, sound, SoundCategory.BLOCKS, 1.0f, 1.0f);
-        // we do not need to adjust player stats, given the dropped item was from an entity and not a block
+        // No player statistics are adjusted: this is an entity drop, not a block break.
     }
 
     /**
-     * Simulates an item drop.
+     * Spawns an item without playing a sound. Used for the item that was displayed inside the frame.
      *
-     * @param loc        The location to naturally drop an item at.
-     * @param itemToDrop The item to be dropped.
+     * @param loc location where the item should appear
+     * @param itemToDrop item stack to spawn
      */
     private void dropItem(Location loc, ItemStack itemToDrop) {
         dropItem(loc, itemToDrop, null);
     }
-
 }
