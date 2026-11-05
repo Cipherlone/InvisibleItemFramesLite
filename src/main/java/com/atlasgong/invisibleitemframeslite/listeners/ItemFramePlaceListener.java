@@ -8,25 +8,31 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.persistence.PersistentDataType;
 
-/** Listener that handles placement of invisible item frames. */
+/**
+ * Transfers the plugin marker from a custom frame item to the placed item-frame entity.
+ *
+ * <p>ItemStack metadata and entity persistent data are separate stores. Without this transfer, later
+ * interaction and break listeners could not distinguish a plugin-created frame from a vanilla frame.</p>
+ */
 public class ItemFramePlaceListener implements Listener {
 
-    /** Key used to tag item frames as invisible via persistent data. */
+    /** Plugin-scoped key used to identify custom invisible frames. */
     private final NamespacedKey isInvisibleKey;
 
     /**
-     * Constructs a new ItemFramePlaceListener.
-     *
-     * @param isInvisibleKey The {@link NamespacedKey} used to identify invisible item frames.
+     * @param isInvisibleKey key used on both the inventory item and placed entity
      */
     public ItemFramePlaceListener(NamespacedKey isInvisibleKey) {
         this.isInvisibleKey = isInvisibleKey;
     }
 
     /**
-     * Handles the event triggered when a hanging entity (such as an item frame) is placed.
-     * If the player previously attempted to place an invisible item frame, the newly created
-     * item frame entity is tagged as invisible using persistent data.
+     * Marks a newly placed hanging entity when the item used for placement is one of our custom frames.
+     *
+     * <p>Cancelled placement events are ignored. HIGHEST priority lets this listener observe the final
+     * placement state after most other plugins have had an opportunity to modify the event.</p>
+     *
+     * @param e hanging-entity placement event
      */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onHangingPlace(HangingPlaceEvent e) {
@@ -35,5 +41,4 @@ public class ItemFramePlaceListener implements Listener {
                     PersistentDataType.BYTE, (byte) 1);
         }
     }
-
 }
