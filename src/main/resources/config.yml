@@ -26,9 +26,10 @@ recipes:
       - FFF
 
     # items required for crafting, matching the letters in the shape as defined above
+    # The center ingredient (A) is configurable. It defaults to a glass pane.
     ingredients:
       F: minecraft:item_frame
-      A: minecraft:phantom_membrane
+      A: minecraft:glass_pane
 
     # how many of the item should be produced by the recipe.
     count: 8
@@ -40,5 +41,5 @@ recipes:
       - FFF
     ingredients:
       F: minecraft:glow_item_frame
-      A: minecraft:phantom_membrane
+      A: minecraft:glass_pane
     count: 8
