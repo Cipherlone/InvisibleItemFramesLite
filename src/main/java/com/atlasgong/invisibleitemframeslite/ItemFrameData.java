@@ -5,12 +5,11 @@ import net.kyori.adventure.text.Component;
 import java.util.List;
 
 /**
- * Holds structured data for an invisible item frame including name, lore, and enchantment glint status.
+ * Immutable configuration snapshot used to construct an invisible item-frame item.
  *
- * @param name  The display name as a MiniMessage Component.
- * @param lore  The list of lore lines as MiniMessage Components.
- * @param glint Whether the item has the enchantment glint effect.
+ * @param name display name component, parsed from MiniMessage or legacy formatting
+ * @param lore ordered lore components; an empty list means no lore
+ * @param glint whether the item's enchantment glint override is enabled
  */
 public record ItemFrameData(Component name, List<Component> lore, boolean glint) {
-
 }
