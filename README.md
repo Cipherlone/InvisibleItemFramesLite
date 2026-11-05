@@ -53,7 +53,21 @@ No command trees. No permission setup. Just craftable invisible item frames that
 
 ## Configuration
 
-The default configuration provides recipes for regular and glow invisible item frames. Item names, optional lore, enchantment glint, recipe shapes, ingredients, and output counts can be configured in `config.yml`. MiniMessage is supported for display text; legacy section-sign formatting remains supported for existing configurations.
+The default configuration provides recipes for regular and glow invisible item frames. Item names, optional lore, enchantment glint, recipe shapes, ingredients, and output counts can be configured in `config.yml`.
+
+The center ingredient in each crafting recipe defaults to a glass pane. To change it, edit the `A` entry under the corresponding recipe's `ingredients` section. For example, to use a phantom membrane for regular invisible item frames:
+
+```yaml
+recipes:
+  invisible_item_frame:
+    ingredients:
+      F: minecraft:item_frame
+      A: minecraft:phantom_membrane
+```
+
+The regular and glow recipes can use different center ingredients. Material values accept Bukkit material names or namespaced material keys. MiniMessage is supported for display text; legacy section-sign formatting remains supported for existing configurations.
+
+Existing configuration values are preserved. If your server already has `minecraft:phantom_membrane` configured, it will continue to use that material until you change the value to `minecraft:glass_pane`.
 
 ## Migrating from v2 to v3
 
