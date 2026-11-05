@@ -9,7 +9,7 @@ All notable changes to this project are documented here.
 - Updated MockBukkit to the matching 26.3 test artifact.
 - Declared `api-version: '26.3'` in plugin metadata.
 - Kept Java 25 as the project compilation target.
-- Consolidated the JUnit version in Maven properties.
+- Updated JUnit to 6.1.3 and consolidated its version in Maven properties to match the MockBukkit 26.3 dependency line.
 - Removed the legacy Sonatype OSS repository; dependencies are resolved from Maven Central and the PaperMC repository.
 - Isolated the relocated bStats classes under the plugin's `lib.bstats` package.
 
