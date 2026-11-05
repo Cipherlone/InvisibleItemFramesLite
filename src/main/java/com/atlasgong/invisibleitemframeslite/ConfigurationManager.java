@@ -16,21 +16,31 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
+/**
+ * Reads item metadata and shaped-recipe definitions from the plugin configuration.
+ *
+ * <p>This class centralizes YAML access and converts configured values into Bukkit/Adventure objects.
+ * It does not save the configuration; the plugin lifecycle is responsible for creating the default file.</p>
+ */
 public class ConfigurationManager {
 
     private final Logger logger;
     private final FileConfiguration config;
 
+    /**
+     * @param logger plugin logger used to report invalid recipe configuration
+     * @param config loaded Bukkit configuration
+     */
     public ConfigurationManager(Logger logger, FileConfiguration config) {
         this.logger = logger;
         this.config = config;
     }
 
     /**
-     * Adds default configuration values for a specific invisible item frame type.
+     * Supplies fallback values for one frame type. Existing user values are not overwritten.
      *
-     * @param id   The identifier for the item type (e.g., "invisible_item_frame").
-     * @param type The {@link Material} for the frame (e.g. Material.ITEM_FRAME).
+     * @param id configuration identifier used below both {@code items} and {@code recipes}
+     * @param type Bukkit material represented by this frame type
      */
     public void addConfigDefaults(String id, Material type) {
         config.addDefault("items." + id + ".name", "Invisible " + Utils.toTitleCase(type.name().toLowerCase().replace("_", " ")));
@@ -42,11 +52,14 @@ public class ConfigurationManager {
     }
 
     /**
-     * Loads frame data from a given configuration section, deserializing text using MiniMessage.
-     * The client code is expected to call `addConfigDefaults()` before this function.
+     * Loads the display metadata for one configured frame item.
      *
-     * @param itemId The item ID for the corresponding configuration section.
-     * @return An {@link ItemFrameData} object containing the name, lore, and glint flag.
+     * <p>MiniMessage is the preferred format. If a configured line contains the legacy section-sign
+     * character, the legacy serializer is used for that line so older configurations continue to work.</p>
+     *
+     * @param itemId identifier under the {@code items} configuration section
+     * @return immutable item metadata ready for the item registry
+     * @throws IllegalArgumentException if the requested configuration section is absent
      */
     public ItemFrameData loadItemData(String itemId) {
         ConfigurationSection section = config.getConfigurationSection("items." + itemId);
@@ -54,24 +67,22 @@ public class ConfigurationManager {
             throw new IllegalArgumentException("Missing configuration section for 'items." + itemId + "'.");
         }
 
-        // get name, lore, and glint from config
         String name = section.getString("name");
         assert name != null;
         List<String> lore = section.getStringList("lore");
         boolean glint = section.getBoolean("enchantment_glint");
 
-        // translate strings to components
-
-        // get legacy component serializer for legacy config
         LegacyComponentSerializer lcs = LegacyComponentSerializer.legacy('§');
 
+        // Parse the display name using the format indicated by its contents.
         Component nameComponent;
-        if (name.contains("§")) { // if string incl legacy characters
+        if (name.contains("§")) {
             nameComponent = lcs.deserialize(name);
         } else {
             nameComponent = MiniMessage.miniMessage().deserialize(name);
         }
 
+        // Apply the same compatibility rule to each lore line independently.
         List<Component> loreComponents = lore.stream()
                 .map(line -> {
                     if (line.contains("§")) {
@@ -85,12 +96,17 @@ public class ConfigurationManager {
     }
 
     /**
-     * Loads a Bukkit recipe from a given configuration section.
-     * The client code is expected to call `addConfigDefaults()` before this function.
+     * Builds a Bukkit shaped recipe from the configured shape, ingredient map, and output count.
      *
-     * @param recipeKey The unique namespaced key identifier for the recipe.
-     * @param itemId    The item ID for the corresponding configuration section.
-     * @param result    The item the recipe is expected to craft.
+     * <p>Each ingredient-map key is the single character used in the shape. Values are parsed as Bukkit
+     * material names or namespaced material keys. Unknown materials are logged and skipped; Bukkit may
+     * then reject an incomplete recipe during registration.</p>
+     *
+     * @param recipeKey unique plugin-scoped recipe identifier
+     * @param itemId identifier under the {@code recipes} configuration section
+     * @param result registered custom item used as the recipe output
+     * @return configured recipe, or null when the shape is empty
+     * @throws IllegalArgumentException if the requested recipe section is absent
      */
     public Recipe loadRecipe(NamespacedKey recipeKey, String itemId, ItemStack result) {
         ConfigurationSection section = config.getConfigurationSection("recipes." + itemId);
@@ -98,6 +114,7 @@ public class ConfigurationManager {
             throw new IllegalArgumentException("Missing configuration section for 'recipes." + itemId + "'.");
         }
 
+        // Never mutate the registry's canonical ItemStack when applying the configured output amount.
         ItemStack item = result.clone();
         int count = section.getInt("count");
         if (count == 0) {
@@ -105,6 +122,7 @@ public class ConfigurationManager {
             count = 1;
         }
         item.setAmount(count);
+
         ShapedRecipe recipe = new ShapedRecipe(recipeKey, item);
         List<String> shape = section.getStringList("shape");
         if (shape.isEmpty()) {
@@ -114,7 +132,7 @@ public class ConfigurationManager {
         recipe.shape(shape.toArray(new String[0]));
 
         ConfigurationSection ingredients = section.getConfigurationSection("ingredients");
-        // if this is null, then the defaults above are incorrect.
+        // Defaults are supplied by addConfigDefaults(); a missing section indicates malformed configuration.
         assert ingredients != null;
         for (Map.Entry<String, Object> entry : ingredients.getValues(false).entrySet()) {
             Material material = Material.matchMaterial(entry.getValue().toString());
