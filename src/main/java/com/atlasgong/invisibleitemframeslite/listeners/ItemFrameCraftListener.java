@@ -11,34 +11,36 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
 
 /**
- * Listener that controls crafting behavior for invisible item frames.
- * Blocks the ability to craft invisible item frames using themselves.
+ * Prevents custom invisible frame items from being used as ingredients in their own shaped recipes.
+ *
+ * <p>This avoids recursive crafting in which an already-crafted custom frame could be fed back into
+ * the recipe to produce additional custom frames. Ordinary vanilla frames and unrelated recipes are
+ * not affected.</p>
  */
 public class ItemFrameCraftListener implements Listener {
 
-    /** Key used to tag item frames as invisible via persistent data. */
+    /** Plugin-scoped key used to identify custom invisible frame items. */
     private final NamespacedKey isInvisibleKey;
 
-    /**
-     * Constructs a new ItemFrameCraftListener.
-     *
-     * @param isInvisibleKey The {@link NamespacedKey} used to identify invisible item frames.
-     */
+    /** @param isInvisibleKey persistent-data key stored on custom frame ItemStacks */
     public ItemFrameCraftListener(NamespacedKey isInvisibleKey) {
         this.isInvisibleKey = isInvisibleKey;
     }
 
     /**
-     * Blocks the ability to craft invisible item frames using themselves.
+     * Clears the crafting result when a custom frame is used as an ingredient in a shaped recipe
+     * whose output is itself a custom invisible frame.
+     *
+     * @param event preparation event for the crafting inventory
      */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPrepareItemCraft(PrepareItemCraftEvent event) {
-        // check if crafted result is our invisible item frame
+        // Ignore recipes whose result is not one of our marked frame items.
         if (!Utils.isInvisibleItemFrame(event.getInventory().getResult(), isInvisibleKey)) {
             return;
         }
 
-        // disallow recursive crafting with invisible item frames
+        // Restrict this safeguard to the plugin's shaped recipes; other recipe types retain vanilla behavior.
         if (event.getRecipe() instanceof ShapedRecipe) {
             for (ItemStack is : event.getInventory().getMatrix()) {
                 if (Utils.isInvisibleItemFrame(is, isInvisibleKey)) {
