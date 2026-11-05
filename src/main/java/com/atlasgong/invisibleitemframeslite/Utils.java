@@ -10,18 +10,24 @@ import org.bukkit.persistence.PersistentDataType;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
+/** Stateless helper methods shared by the plugin's listeners and configuration code. */
 public class Utils {
 
+    /** Prevent utility-class instantiation. */
     private Utils() {
         throw new AssertionError("Utils should not be instantiated.");
     }
 
     /**
-     * Checks if the given ItemStack represents one of this plugin’s invisible item-frame items.
+     * Tests whether an inventory item is one of this plugin's custom invisible-frame items.
      *
-     * @param item           the ItemStack to test; may be null
-     * @param isInvisibleKey the NamespacedKey used to mark invisibility in its PersistentDataContainer
-     * @return true if the item is non-null, has metadata, and carries the invisibility marker; false otherwise
+     * <p>The marker is a plugin-namespaced byte in the item's persistent data container. Checking the key
+     * rather than the material or display name prevents ordinary frames and similarly named items from
+     * being mistaken for plugin items.</p>
+     *
+     * @param item item to test; may be null
+     * @param isInvisibleKey plugin-owned persistent-data key
+     * @return true when the item carries the plugin marker
      */
     public static boolean isInvisibleItemFrame(ItemStack item, NamespacedKey isInvisibleKey) {
         if (item == null) return false;
@@ -31,12 +37,14 @@ public class Utils {
     }
 
     /**
-     * Checks if the given Entity is an item frame (regular or glowing)
-     * that has been marked as invisible by this plugin.
+     * Tests whether a placed entity is an item frame carrying this plugin's marker.
      *
-     * @param entity         the Entity to test; may be null or of any type
-     * @param isInvisibleKey the NamespacedKey used to mark invisibility in its PersistentDataContainer
-     * @return true if the entity is an ItemFrame and carries the invisibility marker; false otherwise
+     * <p>Item metadata is not copied onto the placed entity automatically, so the placement listener
+     * explicitly writes the marker to the entity's persistent data container.</p>
+     *
+     * @param entity entity to test; may be null or any entity type
+     * @param isInvisibleKey plugin-owned persistent-data key
+     * @return true only for a marked regular or glow item frame
      */
     public static boolean isInvisibleItemFrame(Entity entity, NamespacedKey isInvisibleKey) {
         return entity instanceof ItemFrame && entity.getPersistentDataContainer().has(isInvisibleKey,
@@ -44,15 +52,17 @@ public class Utils {
     }
 
     /**
-     * Converts a string to title case (beware: only capitalizes the first letter of each word).
+     * Capitalizes the first character of each space-separated word.
      *
-     * @param input The input string.
-     * @return A string with each word capitalized.
+     * <p>This is intended for human-readable names derived from Bukkit material names, not locale-aware
+     * title casing or arbitrary natural-language text.</p>
+     *
+     * @param input input string
+     * @return words joined by single spaces with their first characters capitalized
      */
     public static String toTitleCase(String input) {
         return Arrays.stream(input.split(" "))
                 .map(word -> word.substring(0, 1).toUpperCase() + word.substring(1))
                 .collect(Collectors.joining(" "));
     }
-
 }
