@@ -39,6 +39,10 @@ public class ConfigurationManager {
     /**
      * Supplies fallback values for one frame type. Existing user values are not overwritten.
      *
+     * <p>The center ingredient is deliberately a configuration value rather than a hard-coded
+     * material. Both regular and glow frame recipes default to a glass pane, while server
+     * administrators can replace that material independently in {@code config.yml}.</p>
+     *
      * @param id configuration identifier used below both {@code items} and {@code recipes}
      * @param type Bukkit material represented by this frame type
      */
@@ -48,7 +52,8 @@ public class ConfigurationManager {
         config.addDefault("recipes." + id + ".count", 8);
         config.addDefault("recipes." + id + ".shape", Arrays.asList("FFF", "FAF", "FFF"));
         config.addDefault("recipes." + id + ".ingredients.F", "minecraft:" + type.name().toLowerCase());
-        config.addDefault("recipes." + id + ".ingredients.A", "minecraft:phantom_membrane");
+        // Keep the center ingredient configurable; glass pane is the default for new configurations.
+        config.addDefault("recipes." + id + ".ingredients.A", "minecraft:glass_pane");
     }
 
     /**
