@@ -12,9 +12,11 @@ All notable changes to this project are documented here.
 - Updated JUnit to 6.1.3 and consolidated its version in Maven properties to match the MockBukkit 26.3 dependency line.
 - Removed the legacy Sonatype OSS repository; dependencies are resolved from Maven Central and the PaperMC repository.
 - Isolated the relocated bStats classes under the plugin's `lib.bstats` package.
+- Changed the default center ingredient for both invisible item frame recipes from phantom membrane to glass pane. The ingredient remains configurable per recipe in `config.yml`.
 
 ### Documentation
 - Updated the README compatibility statement and Maven verification instructions.
+- Documented how to configure the center crafting ingredient.
 - Added class and method documentation to explain plugin lifecycle, persistent-data markers, item creation, configuration parsing, and event handling.
 
 ### Validation
