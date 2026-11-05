@@ -15,22 +15,36 @@ import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
+/**
+ * Main plugin entry point.
+ *
+ * <p>Initializes the plugin-scoped persistent-data and recipe keys, loads configurable item metadata,
+ * registers crafting recipes and event listeners, and starts bStats metrics.</p>
+ *
+ * <p>The invisible marker is stored on both the custom frame item and the placed entity. The item marker
+ * identifies frames during placement/crafting; the entity marker allows later interaction and break
+ * events to recognize the placed frame.</p>
+ */
 public class InvisibleItemFramesLite extends JavaPlugin {
 
     private static boolean firstLoad = true;
 
+    /** @return the persistent-data key used to identify custom invisible frame items and entities */
     public NamespacedKey getInvisibleKey() {
         return IS_INVISIBLE_KEY;
     }
 
+    /** @return the key for the configurable regular-frame crafting recipe */
     public NamespacedKey getRegularRecipeKey() {
         return REGULAR_RECIPE_KEY;
     }
 
+    /** @return the key for the configurable glow-frame crafting recipe */
     public NamespacedKey getGlowRecipeKey() {
         return GLOW_RECIPE_KEY;
     }
 
+    /** @return the key for converting a regular invisible frame into a glow frame */
     public NamespacedKey getShapelessGlowRecipeKey() {
         return SHAPELESS_GLOW_RECIPE_KEY;
     }
@@ -40,6 +54,7 @@ public class InvisibleItemFramesLite extends JavaPlugin {
     private final NamespacedKey GLOW_RECIPE_KEY;
     private final NamespacedKey SHAPELESS_GLOW_RECIPE_KEY;
 
+    /** Creates the stable, plugin-namespaced identifiers used throughout this plugin. */
     public InvisibleItemFramesLite() {
         super();
         IS_INVISIBLE_KEY = new NamespacedKey(this, "invisible");
@@ -48,24 +63,29 @@ public class InvisibleItemFramesLite extends JavaPlugin {
         SHAPELESS_GLOW_RECIPE_KEY = new NamespacedKey(this, "invisible_glow_item_frame_shapeless");
     }
 
+    /**
+     * Enables the plugin in dependency order: listeners, configuration, item templates, recipes, and metrics.
+     * The registered item templates are shared by crafting and break-drop handling.
+     */
     @Override
     public void onEnable() {
         firstLoad = false;
 
-        // register listeners
+        // Register listeners before gameplay interactions can occur.
         PluginManager pm = this.getServer().getPluginManager();
         pm.registerEvents(new ItemFramePlaceListener(IS_INVISIBLE_KEY), this);
         pm.registerEvents(new ItemFrameBreakListener(IS_INVISIBLE_KEY), this);
         pm.registerEvents(new ItemFrameInteractionListener(IS_INVISIBLE_KEY), this);
         pm.registerEvents(new ItemFrameCraftListener(IS_INVISIBLE_KEY), this);
 
-        // load config
+        // Ensure a default config exists, then supply defaults for any missing item/recipe entries.
         saveDefaultConfig();
         ConfigurationManager cm = new ConfigurationManager(getLogger(), getConfig());
         cm.addConfigDefaults("invisible_item_frame", Material.ITEM_FRAME);
         cm.addConfigDefaults("invisible_glow_item_frame", Material.GLOW_ITEM_FRAME);
 
-        // register item frames with the registry
+        // Build canonical item templates from config. The registry returns clones so callers cannot
+        // accidentally mutate the stored templates when changing stack amounts or adding recipe data.
         ItemFrameRegistry registry = ItemFrameRegistry.getInstance();
         ItemFrameData regData = cm.loadItemData("invisible_item_frame");
         ItemFrameData glowData = cm.loadItemData("invisible_glow_item_frame");
@@ -74,7 +94,7 @@ public class InvisibleItemFramesLite extends JavaPlugin {
         registry.registerGlowInvisibleItemFrame(getInvisibleKey(), glowData.name(),
                 glowData.lore(), glowData.glint());
 
-        // register recipes
+        // Register the two configurable shaped recipes.
         Recipe regRecipe = cm.loadRecipe(getRegularRecipeKey(), "invisible_item_frame",
                 registry.getRegularInvisibleFrame());
         registerRecipe(regRecipe);
@@ -83,14 +103,22 @@ public class InvisibleItemFramesLite extends JavaPlugin {
                 registry.getGlowInvisibleFrame());
         registerRecipe(glowRecipe);
 
-        // register shapeless glow item frame recipe
+        // Also support upgrading an already-crafted regular invisible frame with glow ink.
         registerShapelessGlowRecipe(getShapelessGlowRecipeKey());
 
-        // incl metrics for bStats
+        // bStats plugin ID: 25837.
         int pluginId = 25837;
         new Metrics(this, pluginId);
     }
 
+    /**
+     * Adds a recipe to Bukkit's recipe registry.
+     *
+     * <p>Duplicate recipe keys can occur after an unsupported plugin reload. Log a useful diagnostic
+     * rather than allowing that registration exception to prevent the rest of startup.</p>
+     *
+     * @param recipe recipe produced by {@link ConfigurationManager}
+     */
     private void registerRecipe(Recipe recipe) {
         try {
             Bukkit.addRecipe(recipe);
@@ -105,10 +133,12 @@ public class InvisibleItemFramesLite extends JavaPlugin {
         }
     }
 
-
     /**
-     * Adds a shapeless recipe to allow crafting an invisible item frame
-     * with a glow ink sac to make an invisible glow item frame.
+     * Registers the shapeless conversion recipe: one regular invisible frame plus one glow ink sac
+     * produces one invisible glow item frame.
+     *
+     * <p>An exact item choice is used so ordinary item frames cannot be substituted for the custom
+     * marked item. The registry supplies a clone to avoid mutating its canonical item template.</p>
      *
      * @param key plugin-scoped identifier for the recipe
      */
@@ -118,11 +148,8 @@ public class InvisibleItemFramesLite extends JavaPlugin {
 
         ShapelessRecipe recipe = new ShapelessRecipe(key, glowIs.clone());
         recipe.addIngredient(Material.GLOW_INK_SAC);
-
         recipe.addIngredient(new RecipeChoice.ExactChoice(regIs.clone()));
 
         Bukkit.addRecipe(recipe);
     }
-
-
 }
