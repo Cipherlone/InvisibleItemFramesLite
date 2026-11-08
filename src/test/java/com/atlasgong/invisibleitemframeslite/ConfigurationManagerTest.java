@@ -75,7 +75,7 @@ public class ConfigurationManagerTest extends MockBukkitTest {
         assertEquals(8, config.getInt("recipes." + variant + ".count"));
         assertEquals(Arrays.asList("FFF", "FAF", "FFF"), config.getStringList("recipes." + variant + ".shape"));
         assertEquals("minecraft:" + type.name().toLowerCase(), config.getString("recipes." + variant + ".ingredients.F"));
-        assertEquals("minecraft:phantom_membrane",
+        assertEquals("minecraft:glass_pane",
                 config.getString("recipes." + variant + ".ingredients.A"));
     }
 
@@ -202,7 +202,7 @@ public class ConfigurationManagerTest extends MockBukkitTest {
         config.set("recipes.test_recipe.count", 0);
         config.set("recipes.test_recipe.shape", Arrays.asList("FFF", "FAF", "FFF"));
         config.set("recipes.test_recipe.ingredients.F", "minecraft:item_frame");
-        config.set("recipes.test_recipe.ingredients.A", "minecraft:phantom_membrane");
+        config.set("recipes.test_recipe.ingredients.A", "minecraft:glass_pane");
 
         ConfigurationManager cm = new ConfigurationManager(logger, config);
         NamespacedKey recipeKey = new NamespacedKey(plugin, "test_recipe");
@@ -222,7 +222,7 @@ public class ConfigurationManagerTest extends MockBukkitTest {
         config.set("recipes.test_recipe.count", 4);
         config.set("recipes.test_recipe.shape", Arrays.asList("FFF", "FAF", "FFF"));
         config.set("recipes.test_recipe.ingredients.F", "minecraft:invalid_material");
-        config.set("recipes.test_recipe.ingredients.A", "minecraft:phantom_membrane");
+        config.set("recipes.test_recipe.ingredients.A", "minecraft:glass_pane");
 
         ConfigurationManager cm = new ConfigurationManager(logger, config);
         NamespacedKey recipeKey = new NamespacedKey(plugin, "test_recipe");
@@ -241,7 +241,7 @@ public class ConfigurationManagerTest extends MockBukkitTest {
         config.set("recipes.test_recipe.count", 16);
         config.set("recipes.test_recipe.shape", Arrays.asList("FFF", "FAF", "FFF"));
         config.set("recipes.test_recipe.ingredients.F", "minecraft:item_frame");
-        config.set("recipes.test_recipe.ingredients.A", "minecraft:phantom_membrane");
+        config.set("recipes.test_recipe.ingredients.A", "minecraft:glass_pane");
 
         ConfigurationManager cm = new ConfigurationManager(logger, config);
         NamespacedKey recipeKey = new NamespacedKey(plugin, "test_recipe");
